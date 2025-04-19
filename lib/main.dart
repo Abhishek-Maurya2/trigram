@@ -1,115 +1,230 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'theme_notifier.dart';
+import 'settings_page.dart'; // Import the SettingsPage
+import 'tasks_page.dart';    // Import TasksPage
+import 'notes_page.dart';    // Import NotesPage
+import 'reminders_page.dart'; // Import RemindersPage
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeNotifier(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    // Define the seed color for generating color schemes
+    const seedColor = Colors.blue;
+    final themeNotifier = Provider.of<ThemeNotifier>(context); // Get the notifier
+
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Trigram App',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
+        colorSchemeSeed: seedColor,
+        useMaterial3: true,
+        brightness: Brightness.light,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      darkTheme: ThemeData(
+        colorSchemeSeed: seedColor,
+        useMaterial3: true,
+        brightness: Brightness.dark,
+      ),
+      themeMode: themeNotifier.themeMode, // Use themeMode from notifier
+      debugShowCheckedModeBanner: false, // Remove debug banner
+      home: const HomePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _HomePageState extends State<HomePage> {
+  int _selectedIndex = 0;
 
-  void _incrementCounter() {
+  // Use the actual page widgets
+  static const List<Widget> _widgetOptions = <Widget>[
+    TasksPage(),
+    NotesPage(),
+    RemindersPage(),
+  ];
+
+  // Titles for the AppBar corresponding to each tab - No longer needed as AppBar is removed
+
+  void _onItemTapped(int index) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _selectedIndex = index;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+      // Add an empty drawer for the drawer icon button to function
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[ // Remove 'const' here
+            const DrawerHeader( // Keep const for individual constant widgets
+              decoration: BoxDecoration(
+                color: Colors.blue, // Example color
+              ),
+              child: Text(
+                'Menu',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            // Remove the duplicate ListTile
+            ListTile( // Keep this one for Settings
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer first
+                Navigator.push( // Then navigate to SettingsPage
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
+            ),
+            const Divider(), // Add a divider for visual separation
+            const ListTile( // Use const
+              leading: Icon(Icons.help), // Use const
+              title: Text('Help'), // Use const
+              // Add onTap if needed for Help page later
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      body: SafeArea( // Use SafeArea to avoid overlapping with status bar
+        child: Column(
+          children: [
+            // Custom Search Bar Area
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Card( // Use Card for elevation and rounded corners
+                elevation: 2.0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30.0), // Rounded corners
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Row(
+                    children: [
+                      Builder( // Use Builder to get context for Scaffold.of
+                        builder: (context) => IconButton(
+                          icon: const Icon(Icons.menu),
+                          onPressed: () {
+                            Scaffold.of(context).openDrawer(); // Open drawer
+                          },
+                          tooltip: 'Open navigation menu',
+                        ),
+                      ),
+                      const Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Search...',
+                            border: InputBorder.none, // Remove underline
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.account_circle),
+                        onPressed: () {
+                          // TODO: Implement account action
+                        },
+                        tooltip: 'Account',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Expanded content area for the selected page
+            Expanded(
+              child: Center(
+                child: _widgetOptions.elementAt(_selectedIndex),
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: _buildFab(context), // Add the FAB here
+      bottomNavigationBar: NavigationBar(
+        onDestinationSelected: _onItemTapped,
+        selectedIndex: _selectedIndex,
+        destinations: const <Widget>[
+          NavigationDestination(
+            selectedIcon: Icon(Icons.task_alt),
+            icon: Icon(Icons.task_alt_outlined),
+            label: 'Tasks',
+          ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.note_alt),
+            icon: Icon(Icons.note_alt_outlined),
+            label: 'Notes',
+          ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.notifications),
+            icon: Icon(Icons.notifications_outlined),
+            label: 'Reminders',
+          ),
+        ],
+      ),
     );
+  }
+
+  // Helper method to build the FAB based on the selected index
+  Widget? _buildFab(BuildContext context) {
+    switch (_selectedIndex) {
+      case 0: // Tasks
+        return FloatingActionButton.extended( // Use FloatingActionButton.extended
+          onPressed: () {
+            // TODO: Implement Add Task action
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Add New Task Tapped')),
+            );
+          },
+          label: const Text('New Task'),
+          icon: const Icon(Icons.add_task),
+        );
+      case 1: // Notes
+        return FloatingActionButton.extended( // Use FloatingActionButton.extended
+          onPressed: () {
+            // TODO: Implement Add Note action
+             ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Add New Note Tapped')),
+            );
+          },
+          label: const Text('New Note'),
+          icon: const Icon(Icons.edit_note),
+        );
+      case 2: // Reminders
+        return FloatingActionButton.extended( // Use FloatingActionButton.extended
+          onPressed: () {
+            // TODO: Implement Add Reminder action
+             ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Add New Reminder Tapped')),
+            );
+          },
+          label: const Text('New Reminder'),
+          icon: const Icon(Icons.add_alert),
+        );
+      default:
+        return null; // Should not happen
+    }
   }
 }
