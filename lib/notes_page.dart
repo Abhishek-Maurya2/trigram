@@ -1,47 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'task_provider.dart';
 
-class NotesPage extends StatefulWidget {
+class NotesPage extends StatelessWidget {
   const NotesPage({super.key});
 
   @override
-  State<NotesPage> createState() => _NotesPageState();
-}
-
-class _NotesPageState extends State<NotesPage> {
-  // Dummy list of notes
-  final List<Map<String, String>> _notes = List.generate(
-      10,
-      (index) => {
-            'title': 'Note ${index + 1}',
-            'content':
-                'This is the content for note number ${index + 1}. It could be a bit longer to see how it wraps.'
-          });
-
-  @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(8.0),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount:
-            ((MediaQuery.of(context).size.width ~/ 200).clamp(1, 6)).toInt(),
-        crossAxisSpacing: 8.0,
-        mainAxisSpacing: 8.0,
-        childAspectRatio: 1, // Make the grid items square
-      ),
-      itemCount: _notes.length,
-      itemBuilder: (context, index) {
-        return Card(
-          child: ListTile(
-            title: Text(_notes[index]['title']!),
-            subtitle: Text(
-              _notes[index]['content']!,
-              maxLines: 2, // Limit content preview
-              overflow: TextOverflow.ellipsis,
-            ),
-            onTap: () {
-              // TODO: Implement note tap action (e.g., open full note)
-            },
+    return Consumer<TaskProvider>(
+      builder: (context, taskProvider, child) {
+        final notes = taskProvider.getNotes();
+
+        if (notes.isEmpty) {
+          return const Center(
+            child: Text('No notes yet. Add tasks with notes to see them here.'),
+          );
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(8.0),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount:
+                ((MediaQuery.of(context).size.width ~/ 200).clamp(1, 6))
+                    .toInt(),
+            crossAxisSpacing: 8.0,
+            mainAxisSpacing: 8.0,
+            childAspectRatio: 1,
           ),
+          itemCount: notes.length,
+          itemBuilder: (context, index) {
+            return Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      notes[index]['title']!,
+                      style: Theme.of(context).textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Divider(),
+                    Expanded(
+                      child: Text(
+                        notes[index]['content']!,
+                        maxLines: 6,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );

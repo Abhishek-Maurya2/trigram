@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:typed_data';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import 'theme_notifier.dart';
 import 'settings_page.dart';
 import 'tasks_page.dart';
@@ -7,6 +11,7 @@ import 'notes_page.dart';
 import 'reminders_page.dart';
 import 'create_task_page.dart';
 import 'task_provider.dart';
+import 'splash_screen.dart'; // Import SplashScreen
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -49,7 +54,7 @@ class MyApp extends StatelessWidget {
       ),
       themeMode: themeNotifier.themeMode,
       debugShowCheckedModeBanner: false,
-      home: const HomePage(),
+      home: const SplashScreen(), // Start with SplashScreen
     );
   }
 }
@@ -63,12 +68,44 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  Uint8List? _profileImageBytes;
 
   static final List<Widget> _widgetOptions = <Widget>[
     const TasksPage(),
     const NotesPage(),
     const RemindersPage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserProfileImage();
+  }
+
+  Future<void> _fetchUserProfileImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (docSnapshot.exists) {
+        final userData = docSnapshot.data();
+        final base64Image = userData?['profileImage'] as String?;
+        if (base64Image != null && base64Image.isNotEmpty) {
+          setState(() {
+            _profileImageBytes = base64Decode(base64Image);
+          });
+        }
+      }
+    } catch (e) {
+      // Handle error silently
+      debugPrint('Failed to load user profile image: $e');
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -118,47 +155,93 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Card(
-                elevation: 2.0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Row(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Left: Menu button
+                  Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.menu),
+                      onPressed: () {
+                        Scaffold.of(context).openDrawer();
+                      },
+                      tooltip: 'Open navigation menu',
+                    ),
+                  ),
+                  // Center: Page title
+                  Text(
+                    _selectedIndex == 0
+                        ? 'Tasks'
+                        : _selectedIndex == 1
+                            ? 'Notes'
+                            : 'Reminders',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  // Right: Row with filter (conditional) and profile image
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Builder(
-                        builder: (context) => IconButton(
-                          icon: const Icon(Icons.menu),
-                          onPressed: () {
-                            Scaffold.of(context).openDrawer();
+                      // Filter button (only shown on Tasks tab)
+                      if (_selectedIndex == 0)
+                        Consumer<TaskProvider>(
+                          builder: (context, taskProvider, child) {
+                            return IconButton(
+                              icon: Icon(
+                                taskProvider.sortByNewest
+                                    ? Icons.filter_list
+                                    : Icons.filter_list_off,
+                              ),
+                              onPressed: () {
+                                taskProvider.toggleSortOrder();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      taskProvider.sortByNewest
+                                          ? 'Sorting by newest first'
+                                          : 'Sorting by oldest first',
+                                    ),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                              tooltip: taskProvider.sortByNewest
+                                  ? 'Newest first'
+                                  : 'Oldest first',
+                            );
                           },
-                          tooltip: 'Open navigation menu',
                         ),
-                      ),
-                      const Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Search...',
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.account_circle),
-                        onPressed: () {},
-                        tooltip: 'Account',
+                      // Profile image
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const SettingsPage()),
+                          );
+                        },
+                        child: _profileImageBytes != null
+                            ? CircleAvatar(
+                                backgroundImage:
+                                    MemoryImage(_profileImageBytes!),
+                                radius: 20,
+                              )
+                            : const CircleAvatar(
+                                radius: 20,
+                                child: Icon(Icons.account_circle),
+                              ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
             ),
+            const Divider(height: 1),
             Expanded(
-              child: Center(
-                child: _widgetOptions.elementAt(_selectedIndex),
-              ),
+              child: _widgetOptions.elementAt(_selectedIndex),
             ),
           ],
         ),
@@ -202,7 +285,10 @@ class _HomePageState extends State<HomePage> {
                 newTask is Map<String, dynamic> &&
                 newTask.containsKey('title')) {
               final title = newTask['title'] as String;
-              Provider.of<TaskProvider>(context, listen: false).addTask(title);
+              Provider.of<TaskProvider>(context, listen: false).addTask(
+                title: title,
+                subTasks: [], // Initialize with empty subtasks
+              );
             }
           },
           label: const Text('New Task'),
