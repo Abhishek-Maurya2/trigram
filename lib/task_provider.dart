@@ -10,6 +10,7 @@ class Task {
   final DateTime? dateTime;
   final String? note;
   final bool isChecked;
+  final bool isStandaloneNote; // New flag to indicate a standalone note
 
   Task({
     required this.id,
@@ -19,6 +20,8 @@ class Task {
     this.dateTime,
     this.note,
     this.isChecked = false,
+    this.isStandaloneNote =
+        false, // Default to false for backward compatibility
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +32,7 @@ class Task {
       'dateTime': dateTime?.millisecondsSinceEpoch,
       'note': note,
       'isChecked': isChecked,
+      'isStandaloneNote': isStandaloneNote, // Include in map
     };
   }
 
@@ -46,6 +50,7 @@ class Task {
           : null,
       note: map['note'],
       isChecked: map['isChecked'] ?? false,
+      isStandaloneNote: map['isStandaloneNote'] ?? false, // Read from map
     );
   }
 }
@@ -85,6 +90,17 @@ class TaskProvider extends ChangeNotifier {
       sortedTasks.sort((a, b) => a.id.compareTo(b.id));
     }
     return sortedTasks;
+  }
+
+  List<Task> get tasksOnly {
+    final filteredTasks =
+        _tasks.where((task) => !task.isStandaloneNote).toList();
+    if (_sortByNewest) {
+      filteredTasks.sort((a, b) => b.id.compareTo(a.id));
+    } else {
+      filteredTasks.sort((a, b) => a.id.compareTo(b.id));
+    }
+    return filteredTasks;
   }
 
   bool get sortByNewest => _sortByNewest;
@@ -135,6 +151,7 @@ class TaskProvider extends ChangeNotifier {
       'dateTime': dateTime?.millisecondsSinceEpoch,
       'note': note,
       'isChecked': false,
+      'isStandaloneNote': false, // Default to false for new tasks
     });
 
     final task = Task(
@@ -144,6 +161,41 @@ class TaskProvider extends ChangeNotifier {
       subTasks: subTasks,
       dateTime: dateTime,
       note: note,
+    );
+
+    _tasks.add(task);
+    notifyListeners();
+  }
+
+  Future<void> addNote({
+    required String title,
+    required String content,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final docRef = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('tasks')
+        .add({
+      'title': title,
+      'description': null,
+      'subTasks': [],
+      'dateTime': null,
+      'note': content,
+      'isChecked': false,
+      'isStandaloneNote': true, // Mark as a standalone note
+    });
+
+    final task = Task(
+      id: docRef.id,
+      title: title,
+      description: null,
+      subTasks: [],
+      dateTime: null,
+      note: content,
+      isStandaloneNote: true, // Set this flag to true
     );
 
     _tasks.add(task);
@@ -162,6 +214,7 @@ class TaskProvider extends ChangeNotifier {
       dateTime: task.dateTime,
       note: task.note,
       isChecked: !task.isChecked,
+      isStandaloneNote: task.isStandaloneNote,
     );
 
     _tasks[index] = updatedTask;
@@ -194,6 +247,7 @@ class TaskProvider extends ChangeNotifier {
       dateTime: task.dateTime,
       note: task.note,
       isChecked: task.isChecked,
+      isStandaloneNote: task.isStandaloneNote,
     );
 
     _tasks[taskIndex] = updatedTask;
@@ -231,10 +285,14 @@ class TaskProvider extends ChangeNotifier {
   // Get notes (tasks with note)
   List<Map<String, String>> getNotes() {
     final notes = _tasks
-        .where((task) => task.note != null && task.note!.isNotEmpty)
+        .where((task) =>
+            // Include if it has a note OR if it's a standalone note
+            (task.note != null && task.note!.isNotEmpty) ||
+            task.isStandaloneNote)
         .map((task) => {
               'title': task.title,
-              'content': task.note!,
+              'content': task.note ?? '',
+              'id': task.id,
             })
         .toList();
     return notes;
@@ -260,6 +318,7 @@ class TaskProvider extends ChangeNotifier {
       dateTime: dateTime,
       note: note,
       isChecked: isChecked,
+      isStandaloneNote: false, // Default to false for updated tasks
     );
 
     // Find and update task in local list
@@ -269,6 +328,38 @@ class TaskProvider extends ChangeNotifier {
     }
 
     // Update in Firestore
+    await _updateTaskInFirestore(updatedTask);
+    notifyListeners();
+  }
+
+  // Add method to update a note
+  Future<void> updateNote({
+    required String id,
+    required String title,
+    required String content,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Find the existing task
+    final index = _tasks.indexWhere((task) => task.id == id);
+    if (index == -1) return;
+
+    final existingTask = _tasks[index];
+    final wasStandaloneNote = existingTask.isStandaloneNote;
+
+    final updatedTask = Task(
+      id: id,
+      title: title,
+      description: existingTask.description,
+      subTasks: existingTask.subTasks,
+      dateTime: existingTask.dateTime,
+      note: content,
+      isChecked: existingTask.isChecked,
+      isStandaloneNote: wasStandaloneNote, // Preserve the original status
+    );
+
+    _tasks[index] = updatedTask;
     await _updateTaskInFirestore(updatedTask);
     notifyListeners();
   }

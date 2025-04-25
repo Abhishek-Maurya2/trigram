@@ -11,14 +11,13 @@ class TasksPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<TaskProvider>(
       builder: (context, taskProvider, child) {
-        final tasks = taskProvider.tasks;
+        final tasks = taskProvider.tasksOnly; // Use tasksOnly instead of tasks
 
         return Column(
           children: [
             // Filter button in top-right
             Padding(
-              padding:
-                  const EdgeInsets.only(right: 16.0),
+              padding: const EdgeInsets.only(right: 16.0),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: IconButton(
@@ -205,12 +204,6 @@ class TasksPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Note:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.all(8.0),

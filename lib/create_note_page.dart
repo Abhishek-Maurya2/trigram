@@ -113,32 +113,17 @@ class _CreateNotePageState extends State<CreateNotePage> {
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
       if (_isEditing && widget.taskId != null) {
-        // Find the task in the provider
-        final taskIndex =
-            taskProvider.tasks.indexWhere((task) => task.id == widget.taskId);
-
-        if (taskIndex != -1) {
-          final task = taskProvider.tasks[taskIndex];
-
-          // Update the existing task
-          taskProvider.updateTask(
-            id: task.id,
-            title: _titleController.text,
-            description: task.description,
-            subTasks: task.subTasks,
-            dateTime: task.dateTime,
-            note: _contentController.text,
-            isChecked: task.isChecked,
-          );
-        }
-      } else {
-        // Create a new task that functions as a note
-        taskProvider.addTask(
+        // Update existing note
+        taskProvider.updateNote(
+          id: widget.taskId!,
           title: _titleController.text,
-          description: null,
-          subTasks: [],
-          dateTime: null,
-          note: _contentController.text,
+          content: _contentController.text,
+        );
+      } else {
+        // Create a new standalone note
+        taskProvider.addNote(
+          title: _titleController.text,
+          content: _contentController.text,
         );
       }
 
