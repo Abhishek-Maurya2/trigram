@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'task_provider.dart';
+import 'create_note_page.dart';
 
 class NotesPage extends StatelessWidget {
   const NotesPage({super.key});
@@ -13,7 +14,7 @@ class NotesPage extends StatelessWidget {
 
         if (notes.isEmpty) {
           return const Center(
-            child: Text('No notes yet. Add tasks with notes to see them here.'),
+            child: Text('No notes yet. Tap + to add a new note.'),
           );
         }
 
@@ -29,27 +30,52 @@ class NotesPage extends StatelessWidget {
           ),
           itemCount: notes.length,
           itemBuilder: (context, index) {
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      notes[index]['title']!,
-                      style: Theme.of(context).textTheme.titleMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+            final note = notes[index];
+
+            return InkWell(
+              onTap: () {
+                // Find the task that contains this note
+                final task = taskProvider.tasks.firstWhere(
+                  (task) =>
+                      task.title == note['title'] &&
+                      task.note == note['content'],
+                  orElse: () => throw Exception('Note not found'),
+                );
+
+                // Open the CreateNotePage with the note's data
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreateNotePage(
+                      initialTitle: note['title'],
+                      initialContent: note['content'],
+                      taskId: task.id,
                     ),
-                    const Divider(),
-                    Expanded(
-                      child: Text(
-                        notes[index]['content']!,
-                        maxLines: 6,
+                  ),
+                );
+              },
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        note['title']!,
+                        style: Theme.of(context).textTheme.titleMedium,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                      const Divider(),
+                      Expanded(
+                        child: Text(
+                          note['content']!,
+                          maxLines: 6,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

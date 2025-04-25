@@ -13,18 +13,58 @@ class TasksPage extends StatelessWidget {
       builder: (context, taskProvider, child) {
         final tasks = taskProvider.tasks;
 
-        if (tasks.isEmpty) {
-          return const Center(
-            child: Text('No tasks yet. Tap + to add a new task.'),
-          );
-        }
+        return Column(
+          children: [
+            // Filter button in top-right
+            Padding(
+              padding:
+                  const EdgeInsets.only(right: 16.0),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  icon: AnimatedRotation(
+                    turns: taskProvider.sortByNewest
+                        ? 0.25
+                        : 0.7, // 0.5 turns = 180 degrees
+                    duration: const Duration(milliseconds: 300),
+                    child: const Icon(Icons.sync_alt),
+                  ),
+                  onPressed: () {
+                    taskProvider.toggleSortOrder();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          taskProvider.sortByNewest
+                              ? 'Sorting by newest first'
+                              : 'Sorting by oldest first',
+                        ),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  tooltip: taskProvider.sortByNewest
+                      ? 'Newest first'
+                      : 'Oldest first',
+                ),
+              ),
+            ),
 
-        return ListView.builder(
-          itemCount: tasks.length,
-          itemBuilder: (context, index) {
-            final task = tasks[index];
-            return _buildTaskItem(context, task, index, taskProvider);
-          },
+            // Task list
+            Expanded(
+              child: tasks.isEmpty
+                  ? const Center(
+                      child: Text('No tasks yet. Tap + to add a new task.'),
+                    )
+                  : ListView.builder(
+                      itemCount: tasks.length,
+                      itemBuilder: (context, index) {
+                        final task = tasks[index];
+                        return _buildTaskItem(
+                            context, task, index, taskProvider);
+                      },
+                    ),
+            ),
+          ],
         );
       },
     );
@@ -42,7 +82,7 @@ class TasksPage extends StatelessWidget {
         );
       },
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -119,12 +159,6 @@ class TasksPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // const Text(
-                      //   'Subtasks:',
-                      //   style: TextStyle(
-                      //     fontWeight: FontWeight.bold,
-                      //   ),
-                      // ),
                       const SizedBox(height: 8),
                       ...task.subTasks.asMap().entries.map((entry) {
                         final subtaskIndex = entry.key;

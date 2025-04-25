@@ -10,6 +10,7 @@ import 'tasks_page.dart';
 import 'notes_page.dart';
 import 'reminders_page.dart';
 import 'create_task_page.dart';
+import 'create_note_page.dart'; // Import the new CreateNotePage
 import 'task_provider.dart';
 import 'splash_screen.dart'; // Import SplashScreen
 
@@ -156,7 +157,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Padding(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -177,69 +178,30 @@ class _HomePageState extends State<HomePage> {
                         : _selectedIndex == 1
                             ? 'Notes'
                             : 'Reminders',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(),
                   ),
-                  // Right: Row with filter (conditional) and profile image
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Filter button (only shown on Tasks tab)
-                      if (_selectedIndex == 0)
-                        Consumer<TaskProvider>(
-                          builder: (context, taskProvider, child) {
-                            return IconButton(
-                              icon: Icon(
-                                taskProvider.sortByNewest
-                                    ? Icons.filter_list
-                                    : Icons.filter_list_off,
-                              ),
-                              onPressed: () {
-                                taskProvider.toggleSortOrder();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      taskProvider.sortByNewest
-                                          ? 'Sorting by newest first'
-                                          : 'Sorting by oldest first',
-                                    ),
-                                    duration: const Duration(seconds: 1),
-                                  ),
-                                );
-                              },
-                              tooltip: taskProvider.sortByNewest
-                                  ? 'Newest first'
-                                  : 'Oldest first',
-                            );
-                          },
-                        ),
-                      // Profile image
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const SettingsPage()),
-                          );
-                        },
-                        child: _profileImageBytes != null
-                            ? CircleAvatar(
-                                backgroundImage:
-                                    MemoryImage(_profileImageBytes!),
-                                radius: 20,
-                              )
-                            : const CircleAvatar(
-                                radius: 20,
-                                child: Icon(Icons.account_circle),
-                              ),
-                      ),
-                    ],
+                  // Right: Profile image only
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const SettingsPage()),
+                      );
+                    },
+                    child: _profileImageBytes != null
+                        ? CircleAvatar(
+                            backgroundImage: MemoryImage(_profileImageBytes!),
+                            radius: 18,
+                          )
+                        : const CircleAvatar(
+                            radius: 20,
+                            child: Icon(Icons.account_circle),
+                          ),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1),
             Expanded(
               child: _widgetOptions.elementAt(_selectedIndex),
             ),
@@ -297,8 +259,9 @@ class _HomePageState extends State<HomePage> {
       case 1:
         return FloatingActionButton.extended(
           onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Add New Note Tapped')),
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CreateNotePage()),
             );
           },
           label: const Text('New Note'),
