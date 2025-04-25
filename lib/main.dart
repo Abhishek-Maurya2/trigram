@@ -1,28 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme_notifier.dart';
-import 'settings_page.dart'; // Import the SettingsPage
-import 'tasks_page.dart';    // Import TasksPage
-import 'notes_page.dart';    // Import NotesPage
-import 'reminders_page.dart'; // Import RemindersPage
+import 'settings_page.dart';
+import 'tasks_page.dart';
+import 'notes_page.dart';
+import 'reminders_page.dart';
+import 'create_task_page.dart';
+import 'task_provider.dart';
 
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeNotifier(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeNotifier()),
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
+      ],
       child: const MyApp(),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Define the seed color for generating color schemes
     const seedColor = Colors.blue;
-    final themeNotifier = Provider.of<ThemeNotifier>(context); // Get the notifier
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
 
     return MaterialApp(
       title: 'Trigram App',
@@ -36,15 +47,15 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.dark,
       ),
-      themeMode: themeNotifier.themeMode, // Use themeMode from notifier
-      debugShowCheckedModeBanner: false, // Remove debug banner
+      themeMode: themeNotifier.themeMode,
+      debugShowCheckedModeBanner: false,
       home: const HomePage(),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -53,14 +64,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  // Use the actual page widgets
-  static const List<Widget> _widgetOptions = <Widget>[
-    TasksPage(),
-    NotesPage(),
-    RemindersPage(),
+  static final List<Widget> _widgetOptions = <Widget>[
+    const TasksPage(),
+    const NotesPage(),
+    const RemindersPage(),
   ];
-
-  // Titles for the AppBar corresponding to each tab - No longer needed as AppBar is removed
 
   void _onItemTapped(int index) {
     setState(() {
@@ -71,14 +79,13 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Add an empty drawer for the drawer icon button to function
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
-          children: <Widget>[ // Remove 'const' here
-            const DrawerHeader( // Keep const for individual constant widgets
+          children: <Widget>[
+            const DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.blue, // Example color
+                color: Colors.blue,
               ),
               child: Text(
                 'Menu',
@@ -88,47 +95,44 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            // Remove the duplicate ListTile
-            ListTile( // Keep this one for Settings
+            ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Settings'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer first
-                Navigator.push( // Then navigate to SettingsPage
+                Navigator.pop(context);
+                Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
               },
             ),
-            const Divider(), // Add a divider for visual separation
-            const ListTile( // Use const
-              leading: Icon(Icons.help), // Use const
-              title: Text('Help'), // Use const
-              // Add onTap if needed for Help page later
+            const Divider(),
+            const ListTile(
+              leading: Icon(Icons.help),
+              title: Text('Help'),
             ),
           ],
         ),
       ),
-      body: SafeArea( // Use SafeArea to avoid overlapping with status bar
+      body: SafeArea(
         child: Column(
           children: [
-            // Custom Search Bar Area
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Card( // Use Card for elevation and rounded corners
+              child: Card(
                 elevation: 2.0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.0), // Rounded corners
+                  borderRadius: BorderRadius.circular(30.0),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Row(
                     children: [
-                      Builder( // Use Builder to get context for Scaffold.of
+                      Builder(
                         builder: (context) => IconButton(
                           icon: const Icon(Icons.menu),
                           onPressed: () {
-                            Scaffold.of(context).openDrawer(); // Open drawer
+                            Scaffold.of(context).openDrawer();
                           },
                           tooltip: 'Open navigation menu',
                         ),
@@ -137,15 +141,13 @@ class _HomePageState extends State<HomePage> {
                         child: TextField(
                           decoration: InputDecoration(
                             hintText: 'Search...',
-                            border: InputBorder.none, // Remove underline
+                            border: InputBorder.none,
                           ),
                         ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.account_circle),
-                        onPressed: () {
-                          // TODO: Implement account action
-                        },
+                        onPressed: () {},
                         tooltip: 'Account',
                       ),
                     ],
@@ -153,7 +155,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            // Expanded content area for the selected page
             Expanded(
               child: Center(
                 child: _widgetOptions.elementAt(_selectedIndex),
@@ -162,7 +163,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      floatingActionButton: _buildFab(context), // Add the FAB here
+      floatingActionButton: _buildFab(context),
       bottomNavigationBar: NavigationBar(
         onDestinationSelected: _onItemTapped,
         selectedIndex: _selectedIndex,
@@ -187,36 +188,40 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Helper method to build the FAB based on the selected index
   Widget? _buildFab(BuildContext context) {
     switch (_selectedIndex) {
-      case 0: // Tasks
-        return FloatingActionButton.extended( // Use FloatingActionButton.extended
-          onPressed: () {
-            // TODO: Implement Add Task action
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Add New Task Tapped')),
+      case 0:
+        return FloatingActionButton.extended(
+          onPressed: () async {
+            final newTask = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CreateTaskPage()),
             );
+
+            if (newTask != null &&
+                newTask is Map<String, dynamic> &&
+                newTask.containsKey('title')) {
+              final title = newTask['title'] as String;
+              Provider.of<TaskProvider>(context, listen: false).addTask(title);
+            }
           },
           label: const Text('New Task'),
           icon: const Icon(Icons.add_task),
         );
-      case 1: // Notes
-        return FloatingActionButton.extended( // Use FloatingActionButton.extended
+      case 1:
+        return FloatingActionButton.extended(
           onPressed: () {
-            // TODO: Implement Add Note action
-             ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Add New Note Tapped')),
             );
           },
           label: const Text('New Note'),
           icon: const Icon(Icons.edit_note),
         );
-      case 2: // Reminders
-        return FloatingActionButton.extended( // Use FloatingActionButton.extended
+      case 2:
+        return FloatingActionButton.extended(
           onPressed: () {
-            // TODO: Implement Add Reminder action
-             ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Add New Reminder Tapped')),
             );
           },
@@ -224,7 +229,7 @@ class _HomePageState extends State<HomePage> {
           icon: const Icon(Icons.add_alert),
         );
       default:
-        return null; // Should not happen
+        return null;
     }
   }
 }

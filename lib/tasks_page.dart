@@ -1,52 +1,37 @@
 import 'package:flutter/material.dart';
-import 'custom_checkbox.dart'; // Import the CustomCheckbox
-class TasksPage extends StatefulWidget {
-  const TasksPage({super.key});
+import 'package:provider/provider.dart';
+import 'custom_checkbox.dart';
+import 'create_task_page.dart';
+import 'task_provider.dart';
 
-  @override
-  State<TasksPage> createState() => _TasksPageState();
-}
-
-class _TasksPageState extends State<TasksPage> {
-  // Dummy list of tasks
-  final List<String> _tasks =
-      List.generate(15, (index) => 'Task ${index + 1}: Do something important');
-
-  // Track checkbox state for each task
-  late List<bool> _isChecked;
-
-  @override
-  void initState() {
-    super.initState();
-    _isChecked = List.generate(_tasks.length, (index) => false);
-  }
+class TasksPage extends StatelessWidget {
+  const TasksPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final taskProvider = Provider.of<TaskProvider>(context);
+    final tasks = taskProvider.tasks;
+    final isChecked = taskProvider.isChecked;
+
     return ListView.builder(
-      itemCount: _tasks.length,
+      itemCount: tasks.length,
       itemBuilder: (context, index) {
         return ListTile(
-          leading: CustomCheckbox( // Use CustomCheckbox
-            value: _isChecked[index],
+          leading: CustomCheckbox(
+            value: isChecked[index],
             onChanged: (bool? newValue) {
-              setState(() {
-                _isChecked[index] = newValue ?? false;
-                // TODO: Implement task completion logic
-              });
+              taskProvider.toggleChecked(index);
             },
           ),
-          title: Text(_tasks[index]),
+          title: Text(tasks[index]),
           subtitle: Row(
             children: [
-              const Icon(Icons.calendar_today, size: 16), // Calendar icon
-              const SizedBox(width: 4), // Spacing
-              Text('Tomorrow'),
+              const Icon(Icons.calendar_today, size: 16),
+              const SizedBox(width: 4),
+              const Text('Tomorrow'),
             ],
           ),
-          onTap: () {
-            // TODO: Implement task tap action
-          },
+          onTap: () {},
         );
       },
     );
